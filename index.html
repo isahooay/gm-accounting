@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GM工作室｜極速記帳</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#121212">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+  *{box-sizing:border-box}
+  :root{
+    --bg:#121212;
+    --panel1:#1d1d1d;
+    --panel2:#171717;
+    --soft:#232323;
+    --line:#2b2b2b;
+    --text:#eeeeee;
+    --muted:#aaaaaa;
+    --accent:#81c784;
+  }
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+
+  .nav{
+    display:flex;
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:#1a1a1a;
+    border-bottom:1px solid var(--line);
+  }
+  .nav button{
+    flex:1;
+    border:none;
+    background:#1a1a1a;
+    color:#cfcfcf;
+    padding:14px 6px;
+    font-size:13px;
+    font-weight:800;
+  }
+  .nav button.active{
+    color:#fff;
+    background:#202020;
+    box-shadow:inset 0 -3px 0 #4caf50;
+  }
+
+  .page{display:none;padding:12px}
+  .page.active{display:block}
+
+  .display-card{
+    background:linear-gradient(180deg,#1c1c1c,#151515);
+    border-radius:18px;
+    padding:16px 14px;
+    margin-bottom:12px;
+    box-shadow:0 10px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .display{
+    font-size:40px;
+    font-weight:900;
+    text-align:center;
+    color:#fff;
+    letter-spacing:1px;
+  }
+  .display-sub{
+    text-align:center;
+    margin-top:6px;
+    color:#8fcf96;
+    min-height:22px;
+    font-size:15px;
+    font-weight:700;
+  }
+
+  .cat-grid,.pad{display:grid;gap:10px}
+  .cat-grid{grid-template-columns:1fr 1fr;margin-bottom:10px}
+  .pad{grid-template-columns:repeat(3,1fr)}
+
+  .btn{
+    border:none;
+    border-radius:16px;
+    padding:16px 12px;
+    font-size:18px;
+    font-weight:800;
+    background:#1f1f1f;
+    color:#e6e6e6;
+    box-shadow:0 6px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+    transition:transform .08s ease, box-shadow .08s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn:active{
+    transform:translateY(3px);
+    box-shadow:0 2px 6px rgba(0,0,0,.55), inset 0 2px 4px rgba(0,0,0,.45);
+  }
+  .btn.active{
+    color:#fff;
+    box-shadow:0 0 0 1px rgba(255,255,255,.04), 0 0 12px rgba(76,175,80,.30), 0 8px 18px rgba(0,0,0,.5);
+  }
+  .btn.active[data-cat="伙食"]{background:#1b5e20}
+  .btn.active[data-cat="買東西"]{background:#0d47a1}
+  .btn.active[data-cat="保養"]{background:#e65100}
+  .btn.active[data-cat="其他"]{background:#424242}
+
+  .primary-btn{
+    width:100%;
+    margin-top:12px;
+    background:linear-gradient(180deg,#2a2a2a,#1b1b1b);
+  }
+  .danger-btn{
+    width:100%;
+    margin-top:10px;
+    background:linear-gradient(180deg,#4a1f1f,#2b1313);
+    color:#ffd7d7;
+  }
+  .share-btn{
+    width:100%;
+    margin-top:10px;
+    background:linear-gradient(180deg,#2f2a1a,#1c1810);
+    color:#f5d88f;
+  }
+
+  #toast{
+    margin-top:12px;
+    background:#1b1b1b;
+    color:#9bd5a0;
+    border-radius:14px;
+    padding:12px;
+    text-align:center;
+    box-shadow:0 0 12px rgba(76,175,80,.18);
+    opacity:.95;
+    transition:opacity .25s ease;
+    min-height:48px;
+  }
+  #toast button{
+    margin-top:8px;
+    border:none;
+    border-radius:10px;
+    padding:8px 12px;
+    background:#2a2a2a;
+    color:#fff;
+    font-weight:700;
+  }
+
+  .status-line{
+    text-align:center;
+    font-size:12px;
+    color:#7f7f7f;
+    margin-top:8px;
+    line-height:1.5;
+  }
+
+  .search-input{
+    width:100%;
+    border:none;
+    outline:none;
+    background:#1c1c1c;
+    color:#fff;
+    padding:14px;
+    border-radius:14px;
+    font-size:16px;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.45);
+    margin-bottom:10px;
+  }
+
+  .record{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:linear-gradient(180deg,#1d1d1d,#171717);
+    padding:12px;
+    border-radius:16px;
+    margin-bottom:10px;
+    box-shadow:0 6px 16px rgba(0,0,0,.28);
+  }
+  .record-left{flex:1;min-width:0}
+  .record-main{
+    font-size:17px;
+    font-weight:800;
+    color:#fff;
+    margin-bottom:4px;
+    word-break:break-word;
+  }
+  .record-sub{
+    font-size:13px;
+    color:var(--muted);
+  }
+  .record-actions{
+    display:flex;
+    gap:8px;
+    flex-shrink:0;
+  }
+  .mini-btn{
+    border:none;
+    border-radius:12px;
+    padding:10px 12px;
+    background:#282828;
+    color:#fff;
+    font-weight:700;
+  }
+
+  .empty{
+    text-align:center;
+    color:#8b8b8b;
+    padding:24px 10px;
+  }
+
+  .stat-card,.info-card{
+    background:linear-gradient(180deg,var(--panel1),var(--panel2));
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:10px;
+    box-shadow:0 6px 16px rgba(0,0,0,.28);
+  }
+  .stat-title,.info-title{
+    font-size:16px;
+    font-weight:800;
+    color:#fff;
+    margin-bottom:8px;
+  }
+  .stat-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .stat-row:last-child{border-bottom:none}
+  .stat-name{color:#ddd;font-size:15px}
+  .stat-value{color:#fff;font-weight:800;font-size:16px}
+  .info-text{
+    font-size:14px;
+    line-height:1.75;
+    color:#cfcfcf;
+  }
+
+  .center{text-align:center}
+  .qr-img{
+    width:180px;
+    max-width:100%;
+    border-radius:12px;
+    background:#fff;
+    padding:8px;
+  }
+
+  .edit-sheet{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    z-index:50;
+    background:#181818;
+    border-top-left-radius:22px;
+    border-top-right-radius:22px;
+    padding:14px 14px 20px;
+    box-shadow:0 -10px 30px rgba(0,0,0,.45);
+    transform:translateY(110%);
+    transition:transform .24s ease;
+  }
+  .edit-sheet.show{transform:translateY(0)}
+  .sheet-handle{
+    width:46px;height:5px;border-radius:999px;background:#4a4a4a;
+    margin:2px auto 14px;
+  }
+  .sheet-title{
+    font-size:18px;
+    font-weight:800;
+    margin-bottom:12px;
+    text-align:center;
+  }
+  .form-group{margin-bottom:12px}
+  .form-label{
+    display:block;
+    font-size:13px;
+    color:#a9a9a9;
+    margin-bottom:6px;
+  }
+  .form-control,.form-select{
+    width:100%;
+    border:none;
+    outline:none;
+    background:#232323;
+    color:#fff;
+    padding:14px;
+    border-radius:14px;
+    font-size:16px;
+  }
+  .sheet-actions{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+  }
+  .sheet-actions button{
+    flex:1;
+    border:none;
+    border-radius:14px;
+    padding:14px;
+    font-size:16px;
+    font-weight:800;
+  }
+  .btn-save{background:#2e7d32;color:#fff}
+  .btn-cancel{background:#2c2c2c;color:#fff}
+
+  .backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.45);
+    z-index:40;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  .backdrop.show{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  .small-note{
+    font-size:12px;
+    color:#8a8a8a;
+    margin-top:8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button class="active" onclick="showPage(0,this)">記帳</button>
+  <button onclick="showPage(1,this)">記錄</button>
+  <button onclick="showPage(2,this)">搜尋</button>
+  <button onclick="showPage(3,this)">統計</button>
+  <button onclick="showPage(4,this)">資訊</button>
+</div>
+
+<!-- 第1頁 -->
+<div class="page active">
+  <div class="display-card">
+    <div class="display" id="display">0</div>
+    <div class="display-sub" id="displaySub">請先選分類</div>
+  </div>
+
+  <div class="cat-grid">
+    <button class="btn" data-cat="伙食" onclick="setCat('伙食',this)">🍜 伙食</button>
+    <button class="btn" data-cat="買東西" onclick="setCat('買東西',this)">🛍 買東西</button>
+    <button class="btn" data-cat="保養" onclick="setCat('保養',this)">🔧 保養</button>
+    <button class="btn" data-cat="其他" onclick="setCat('其他',this)">📦 其他</button>
+  </div>
+
+  <div class="pad">
+    <button class="btn" onclick="press(1)">1</button>
+    <button class="btn" onclick="press(2)">2</button>
+    <button class="btn" onclick="press(3)">3</button>
+    <button class="btn" onclick="press(4)">4</button>
+    <button class="btn" onclick="press(5)">5</button>
+    <button class="btn" onclick="press(6)">6</button>
+    <button class="btn" onclick="press(7)">7</button>
+    <button class="btn" onclick="press(8)">8</button>
+    <button class="btn" onclick="press(9)">9</button>
+    <button class="btn" onclick="clearAll()">C</button>
+    <button class="btn" onclick="press(0)">0</button>
+    <button class="btn" onclick="backspace()">⌫</button>
+  </div>
+
+  <button class="btn primary-btn" onclick="save()">✅ 記錄</button>
+  <button class="btn danger-btn" onclick="clearAllData()">🗑 清空全部資料</button>
+
+  <div id="toast">尚未記錄</div>
+  <div class="status-line" id="saveStatus">資料會自動保存</div>
+</div>
+
+<!-- 第2頁 -->
+<div class="page">
+  <div id="list"></div>
+</div>
+
+<!-- 第3頁 -->
+<div class="page">
+  <input id="searchInput" class="search-input" placeholder="搜尋 金額 / 分類 / 日期 / 時間" oninput="search(this.value)" />
+  <div id="searchResult"></div>
+</div>
+
+<!-- 第4頁 -->
+<div class="page">
+  <div class="stat-card center">
+    <div class="stat-title">本月總支出</div>
+    <div id="monthTotal" style="font-size:32px;font-weight:900;color:#81c784;">0 元</div>
+  </div>
+  <div id="statsCategory"></div>
+</div>
+
+<!-- 第5頁 -->
+<div class="page">
+  <div class="display-card">
+    <div class="display" style="font-size:26px;">GM工作室</div>
+    <div class="display-sub">客製 / 教學 / AI 協作</div>
+  </div>
+
+  <div class="info-card">
+    <div class="info-title">關於這個工具</div>
+    <div class="info-text">
+      這套工具主打「快速、直覺、無負擔」。<br><br>
+      不需要複雜設定，也不用學一堆操作，打開就能記，重點就是順手、清楚、能真的用得下去。<br><br>
+      如果你也喜歡這種「工具為人服務」的設計方式，那這套就是做給這種需求的人用的。
+    </div>
+  </div>
+
+  <div class="info-card">
+    <div class="info-title">客製 / 教學 / AI 協作</div>
+    <div class="info-text">
+      喜歡這套軟體嗎？<br>
+      有興趣自己做看看嗎？<br><br>
+
+      這類工具其實可以依照需求慢慢客製，像是：<br>
+      ・記帳工具<br>
+      ・排班系統<br>
+      ・外送 / 工作輔助<br>
+      ・個人管理系統<br>
+      ・旅行 / 生活紀錄<br><br>
+
+      也可以交流怎麼用 AI 一起開發，把腦中的想法一步一步做成真正能用的工具。<br><br>
+
+      想客製、想優化、想學，或只是想聊聊方向，都可以聯絡。
+    </div>
+  </div>
+
+  <div class="info-card">
+    <div class="info-title">聯絡方式</div>
+    <div class="center" style="margin:15px 0;">
+      <img
+        class="qr-img"
+        src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https://line.me/ti/p/isahooay"
+        alt="LINE QR"
+      >
+    </div>
+
+    <button class="btn primary-btn" onclick="window.open('https://line.me/ti/p/isahooay','_blank')">
+      ➕ 一鍵加入 LINE
+    </button>
+
+    <button class="btn" style="width:100%" onclick="copyLineId()">
+      📋 複製 LINE ID
+    </button>
+
+    <div id="lineHint" class="status-line">LINE ID：isahooay</div>
+  </div>
+
+  <div class="info-card">
+    <div class="info-title">分享這個工具</div>
+    <div class="info-text">
+      喜歡這個工具的話，也可以直接分享給朋友使用。<br>
+      上線後請把程式中的分享連結改成你的正式網址。
+    </div>
+
+    <button class="btn share-btn" onclick="shareApp()">📤 分享這個工具</button>
+
+    <div class="center" style="margin-top:14px;">
+      <img
+        class="qr-img"
+        id="shareQr"
+        src=""
+        alt="分享 QR"
+      >
+    </div>
+    <div class="status-line" id="shareHint">先把分享連結改成正式網址，QR 也會一起更新</div>
+  </div>
+
+  <div class="info-card">
+    <div class="info-title">提醒</div>
+    <div class="info-text">
+      本工具為本機儲存（localStorage），資料會保存在你的裝置中。<br><br>
+      如清除瀏覽資料、換瀏覽器、換裝置，資料將不會保留，請自行留意。
+    </div>
+  </div>
+
+  <div class="info-card">
+    <div class="info-title">作者</div>
+    <div class="info-text">謝成</div>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeEditSheet()"></div>
+
+<div class="edit-sheet" id="editSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">編輯記錄</div>
+
+  <div class="form-group">
+    <label class="form-label">分類</label>
+    <select id="editCategory" class="form-select">
+      <option value="伙食">伙食</option>
+      <option value="買東西">買東西</option>
+      <option value="保養">保養</option>
+      <option value="其他">其他</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">金額</label>
+    <input id="editAmount" class="form-control" type="number" inputmode="numeric" />
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">日期</label>
+    <input id="editDate" class="form-control" type="date" />
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">時間</label>
+    <input id="editTime" class="form-control" type="time" />
+  </div>
+
+  <div class="sheet-actions">
+    <button class="btn-cancel" onclick="closeEditSheet()">取消</button>
+    <button class="btn-save" onclick="saveEdit()">儲存修改</button>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'gm_quick_accounting_pr_v2_data';
+  const APP_SHARE_URL = 'https://example.com'; // 上線後改成你的正式網址
+
+  let amount = '';
+  let category = '';
+  let currentBtn = null;
+  let data = [];
+  let lastIndex = null;
+  let editingIndex = null;
+
+  function vibrate(ms = 10){
+    if(navigator.vibrate) navigator.vibrate(ms);
+  }
+
+  function initShareQr(){
+    const shareQr = document.getElementById('shareQr');
+    shareQr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(APP_SHARE_URL);
+  }
+
+  function setSaveStatus(text){
+    document.getElementById('saveStatus').innerText = text;
+  }
+
+  function saveToLocal(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      setSaveStatus(`已自動保存，共 ${data.length} 筆`);
+    }catch(err){
+      console.error(err);
+      setSaveStatus('保存失敗，可能瀏覽器空間不足');
+      toast('⚠ 保存失敗');
+    }
+  }
+
+  function loadFromLocal(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        data = [];
+        setSaveStatus('目前尚無保存資料');
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      data = Array.isArray(parsed) ? parsed : [];
+      setSaveStatus(`已載入 ${data.length} 筆資料`);
+    }catch(err){
+      console.error(err);
+      data = [];
+      setSaveStatus('讀取失敗，已改用空資料');
+      toast('⚠ 讀取資料失敗');
+    }
+  }
+
+  function showPage(index, btn){
+    document.querySelectorAll('.page').forEach((p, i) => {
+      p.classList.toggle('active', i === index);
+    });
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+
+    if(index === 1) render();
+    if(index === 2) search(document.getElementById('searchInput').value || '');
+    if(index === 3) renderStats();
+  }
+
+  function setCat(cat, el){
+    vibrate();
+    category = cat;
+
+    if(currentBtn) currentBtn.classList.remove('active');
+    el.classList.add('active');
+    currentBtn = el;
+
+    updateDisplay();
+  }
+
+  function press(n){
+    vibrate();
+    if(amount.length >= 8) return;
+    amount += String(n);
+    updateDisplay();
+  }
+
+  function clearAll(){
+    amount = '';
+    updateDisplay();
+  }
+
+  function backspace(){
+    amount = amount.slice(0, -1);
+    updateDisplay();
+  }
+
+  function updateDisplay(){
+    document.getElementById('display').innerText = amount || '0';
+    document.getElementById('displaySub').innerText = category ? `已選：${category}` : '請先選分類';
+  }
+
+  function formatDateForInput(dateObj){
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function formatTimeForInput(dateObj){
+    const h = String(dateObj.getHours()).padStart(2, '0');
+    const m = String(dateObj.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+
+  function save(){
+    if(!category){
+      toast('⚠ 請選分類');
+      vibrate(40);
+      return;
+    }
+    if(!amount){
+      toast('⚠ 請輸入金額');
+      vibrate(40);
+      return;
+    }
+
+    const now = new Date();
+
+    const rec = {
+      amount: Number(amount),
+      category,
+      date: formatDateForInput(now),
+      time: formatTimeForInput(now)
+    };
+
+    data.push(rec);
+    lastIndex = data.length - 1;
+
+    saveToLocal();
+    toast(`✔ ${rec.category} ${rec.amount} 元<br><button onclick="undo()">復原</button>`);
+
+    amount = '';
+    updateDisplay();
+    render();
+    search(document.getElementById('searchInput').value || '');
+    renderStats();
+  }
+
+  function undo(){
+    if(lastIndex === null || !data[lastIndex]) return;
+    data.splice(lastIndex, 1);
+    lastIndex = null;
+    saveToLocal();
+    toast('已撤銷');
+    render();
+    search(document.getElementById('searchInput').value || '');
+    renderStats();
+  }
+
+  function del(i){
+    data.splice(i, 1);
+    saveToLocal();
+    toast('已刪除');
+    render();
+    search(document.getElementById('searchInput').value || '');
+    renderStats();
+  }
+
+  function clearAllData(){
+    const ok = confirm('確定要清空全部資料嗎？這個動作不能復原。');
+    if(!ok) return;
+
+    data = [];
+    lastIndex = null;
+    saveToLocal();
+    toast('全部資料已清空');
+    render();
+    search(document.getElementById('searchInput').value || '');
+    renderStats();
+  }
+
+  function render(){
+    const list = document.getElementById('list');
+    if(!data.length){
+      list.innerHTML = `<div class="empty">目前還沒有記錄</div>`;
+      return;
+    }
+
+    let html = '';
+    data.slice().reverse().forEach((r, i) => {
+      const realIndex = data.length - 1 - i;
+      html += `
+        <div class="record">
+          <div class="record-left">
+            <div class="record-main">${escapeHtml(r.category)} ${Number(r.amount)} 元</div>
+            <div class="record-sub">${escapeHtml(r.date)} ${escapeHtml(r.time)}</div>
+          </div>
+          <div class="record-actions">
+            <button class="mini-btn" onclick="openEditSheet(${realIndex})">編輯</button>
+            <button class="mini-btn" onclick="del(${realIndex})">刪除</button>
+          </div>
+        </div>
+      `;
+    });
+    list.innerHTML = html;
+  }
+
+  function openEditSheet(i){
+    const r = data[i];
+    if(!r) return;
+
+    editingIndex = i;
+    document.getElementById('editCategory').value = r.category;
+    document.getElementById('editAmount').value = r.amount;
+    document.getElementById('editDate').value = r.date;
+    document.getElementById('editTime').value = r.time;
+
+    document.getElementById('backdrop').classList.add('show');
+    document.getElementById('editSheet').classList.add('show');
+  }
+
+  function closeEditSheet(){
+    editingIndex = null;
+    document.getElementById('backdrop').classList.remove('show');
+    document.getElementById('editSheet').classList.remove('show');
+  }
+
+  function saveEdit(){
+    if(editingIndex === null) return;
+
+    const newCategory = document.getElementById('editCategory').value;
+    const newAmount = document.getElementById('editAmount').value.trim();
+    const newDate = document.getElementById('editDate').value;
+    const newTime = document.getElementById('editTime').value;
+
+    if(!newCategory){
+      toast('⚠ 分類不能空白');
+      return;
+    }
+    if(!newAmount || Number(newAmount) <= 0){
+      toast('⚠ 金額要大於 0');
+      return;
+    }
+    if(!newDate){
+      toast('⚠ 請選日期');
+      return;
+    }
+    if(!newTime){
+      toast('⚠ 請選時間');
+      return;
+    }
+
+    data[editingIndex] = {
+      category: newCategory,
+      amount: Number(newAmount),
+      date: newDate,
+      time: newTime
+    };
+
+    saveToLocal();
+    closeEditSheet();
+    toast('✔ 已更新');
+    render();
+    search(document.getElementById('searchInput').value || '');
+    renderStats();
+  }
+
+  function search(keyword){
+    const box = document.getElementById('searchResult');
+    const k = String(keyword || '').trim().toLowerCase();
+
+    let rows = data;
+    if(k){
+      rows = data.filter(r => {
+        const s = `${r.category} ${r.amount} ${r.date} ${r.time}`.toLowerCase();
+        return s.includes(k);
+      });
+    }
+
+    if(!rows.length){
+      box.innerHTML = `<div class="empty">找不到資料</div>`;
+      return;
+    }
+
+    let html = '';
+    rows.slice().reverse().forEach(r => {
+      html += `
+        <div class="record">
+          <div class="record-left">
+            <div class="record-main">${escapeHtml(r.category)} ${Number(r.amount)} 元</div>
+            <div class="record-sub">${escapeHtml(r.date)} ${escapeHtml(r.time)}</div>
+          </div>
+        </div>
+      `;
+    });
+    box.innerHTML = html;
+  }
+
+  function renderStats(){
+    calcMonthTotal();
+
+    const statsBox = document.getElementById('statsCategory');
+    if(!data.length){
+      statsBox.innerHTML = `<div class="empty">目前還沒有統計資料</div>`;
+      return;
+    }
+
+    const categoryMap = {};
+    data.forEach(r => {
+      if(!categoryMap[r.category]) categoryMap[r.category] = 0;
+      categoryMap[r.category] += Number(r.amount || 0);
+    });
+
+    let html = `<div class="stat-card"><div class="stat-title">項目統計</div>`;
+    Object.entries(categoryMap).forEach(([name, value]) => {
+      html += `
+        <div class="stat-row">
+          <div class="stat-name">${escapeHtml(name)}</div>
+          <div class="stat-value">${Number(value).toLocaleString()} 元</div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+
+    statsBox.innerHTML = html;
+  }
+
+  function calcMonthTotal(){
+    const now = new Date();
+    const currentMonth = now.toISOString().slice(0,7);
+
+    let total = 0;
+    data.forEach(r => {
+      if(r.date && r.date.startsWith(currentMonth)){
+        total += Number(r.amount || 0);
+      }
+    });
+
+    document.getElementById('monthTotal').innerText = `${total.toLocaleString()} 元`;
+  }
+
+  function copyLineId(){
+    navigator.clipboard.writeText("isahooay").then(()=>{
+      document.getElementById('lineHint').innerText = "已複製 LINE ID：isahooay";
+    }).catch(()=>{
+      document.getElementById('lineHint').innerText = "複製失敗，請手動複製：isahooay";
+    });
+  }
+
+  function shareApp(){
+    const shareText = '我在用這個 GM工作室 的極速記帳工具，分享給你看看';
+
+    if(navigator.share){
+      navigator.share({
+        title: 'GM工作室｜極速記帳',
+        text: shareText,
+        url: APP_SHARE_URL
+      }).catch(()=>{});
+    }else{
+      navigator.clipboard.writeText(APP_SHARE_URL).then(()=>{
+        document.getElementById('shareHint').innerText = '已複製分享連結，請自行貼給朋友';
+      }).catch(()=>{
+        document.getElementById('shareHint').innerText = `請手動複製：${APP_SHARE_URL}`;
+      });
+    }
+  }
+
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.innerHTML = msg;
+    el.style.opacity = 1;
+    setTimeout(() => {
+      el.style.opacity = 0.55;
+    }, 1500);
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+    });
+  }
+
+  loadFromLocal();
+  updateDisplay();
+  render();
+  search('');
+  renderStats();
+  initShareQr();
+</script>
+</body>
+</html>
